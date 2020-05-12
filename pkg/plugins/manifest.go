@@ -82,7 +82,7 @@ func readPluginManifest(body []byte) (*pluginManifest, error) {
 	return manifest, nil
 }
 
-// getPluginSignatureState returns the signature state for a plugin
+// getPluginSignatureState returns the signature state for a plugin.
 func getPluginSignatureState(log log.Logger, plugin *PluginBase) PluginSignature {
 	log.Debug("Getting signature state of plugin...", "plugin", plugin.Id)
 	manifestPath := path.Join(plugin.PluginDir, "MANIFEST.txt")
@@ -109,24 +109,18 @@ func getPluginSignatureState(log log.Logger, plugin *PluginBase) PluginSignature
 		fp := path.Join(plugin.PluginDir, p)
 		f, err := os.Open(fp)
 		if err != nil {
-			if os.IsNotExist(err) {
-				// We are tolerant with files missing from the plug-in
-				log.Debug("Plug-in is missing file from manifest, ignoring this", "plugin", plugin.Id, "filename", p)
-				continue
-			}
-
 			return PluginSignatureModified
 		}
 		defer f.Close()
 
 		h := sha256.New()
 		if _, err := io.Copy(h, f); err != nil {
-			log.Warn("Couldn't read plugin file", "plugin", plugin.Id, "filename", p)
+			log.Warn("Couldn't read plugin file", "plugin", plugin.Id, "filename", fp)
 			return PluginSignatureModified
 		}
 		sum := hex.EncodeToString(h.Sum(nil))
 		if sum != hash {
-			log.Warn("Plugin file's signature has been modified versus manifest", "plugin", plugin.Id, "filename", p)
+			log.Warn("Plugin file's signature has been modified versus manifest", "plugin", plugin.Id, "filename", fp)
 			return PluginSignatureModified
 		}
 	}

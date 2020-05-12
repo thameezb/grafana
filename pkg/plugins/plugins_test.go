@@ -119,8 +119,7 @@ func TestPluginManager_Init(t *testing.T) {
 		err := pm.Init()
 		require.NoError(t, err)
 
-		assert.Empty(t, pm.scanningErrors)
-		assert.Equal(t, []string{"test"}, fm.registeredPlugins)
+		assert.Equal(t, []error{fmt.Errorf(`plugin "test"'s signature has been modified`)}, pm.scanningErrors)
 	})
 
 	t.Run("Transform plugins should be ignored when expressions feature is off", func(t *testing.T) {
@@ -149,18 +148,20 @@ func TestPluginManager_Init(t *testing.T) {
 		})
 		setting.PluginsPath = "testdata/behind-feature-flag"
 
+		fm := &fakeBackendPluginManager{}
 		pm := &PluginManager{
 			Cfg: &setting.Cfg{
 				FeatureToggles: map[string]bool{
 					"expressions": true,
 				},
 			},
-			BackendPluginManager: &fakeBackendPluginManager{},
+			BackendPluginManager: fm,
 		}
 		err := pm.Init()
 		require.NoError(t, err)
 
-		assert.Equal(t, []error{fmt.Errorf(`plugin "gel" is unsigned`)}, pm.scanningErrors)
+		assert.Empty(t, pm.scanningErrors)
+		assert.Equal(t, []string{"gel"}, fm.registeredPlugins)
 	})
 }
 
