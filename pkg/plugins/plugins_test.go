@@ -104,6 +104,25 @@ func TestPluginManager_Init(t *testing.T) {
 		assert.Equal(t, []error{fmt.Errorf(`plugin "test" has an invalid signature`)}, pm.scanningErrors)
 	})
 
+	t.Run("With external back-end plugin lacking files listed in manifest", func(t *testing.T) {
+		origPluginsPath := setting.PluginsPath
+		t.Cleanup(func() {
+			setting.PluginsPath = origPluginsPath
+		})
+		setting.PluginsPath = "testdata/lacking-files"
+
+		fm := &fakeBackendPluginManager{}
+		pm := &PluginManager{
+			Cfg:                  &setting.Cfg{},
+			BackendPluginManager: fm,
+		}
+		err := pm.Init()
+		require.NoError(t, err)
+
+		assert.Empty(t, pm.scanningErrors)
+		assert.Equal(t, []string{"test"}, fm.registeredPlugins)
+	})
+
 	t.Run("Transform plugins should be ignored when expressions feature is off", func(t *testing.T) {
 		origPluginsPath := setting.PluginsPath
 		t.Cleanup(func() {
@@ -120,7 +139,7 @@ func TestPluginManager_Init(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Empty(t, pm.scanningErrors)
-		assert.Equal(t, 0, fm.registerCount)
+		assert.Empty(t, fm.registeredPlugins)
 	})
 
 	t.Run("Transform plugins should be loaded when expressions feature is on", func(t *testing.T) {
@@ -166,11 +185,11 @@ func TestPluginManager_IsBackendOnlyPlugin(t *testing.T) {
 }
 
 type fakeBackendPluginManager struct {
-	registerCount int
+	registeredPlugins []string
 }
 
 func (f *fakeBackendPluginManager) Register(descriptor backendplugin.PluginDescriptor) error {
-	f.registerCount++
+	f.registeredPlugins = append(f.registeredPlugins, descriptor.PluginID())
 	return nil
 }
 
